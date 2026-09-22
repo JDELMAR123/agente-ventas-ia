@@ -1,0 +1,197 @@
+// Esquema del Agente de Ventas — aprende más: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ChannelType {
+  WHATSAPP
+  INSTAGRAM
+  MESSENGER
+}
+
+enum MessageDirection {
+  ENTRANTE
+  SALIENTE
+}
+
+enum MessageSender {
+  CLIENTE
+  AGENTE
+  HUMANO
+}
+
+enum LeadStage {
+  NUEVO
+  CONTACTADO
+  NEGOCIANDO
+  GANADO
+  PERDIDO
+}
+
+enum ConversationStatus {
+  ACTIVA
+  PAUSADA // escalada a un humano: el agente deja de responder automáticamente
+  CERRADA
+}
+
+enum FollowUpStatus {
+  PENDIENTE
+  ENVIADO
+  CANCELADO
+}
+
+/// Configuración del negocio que compró este agente. Fila única (id = "singleton").
+/// Nada de esto viene hardcodeado en el código — se edita desde /admin.
+model Settings {
+  id String @id @default("singleton")
+
+  businessName String @default("Mi negocio")
+  brandTone    String @default("cercano y profesional, sin exagerar con emojis")
+
+  // Motor de IA: "rules" (gratis, por defecto) | "anthropic" (Claude, con clave propia del comprador)
+  aiProvider        String  @default("rules")
+  aiApiKey          String?
+  aiModel           String  @default("claude-sonnet-5")
+  aiBusinessContext String  @default("")
+
+  // Reglas duras de negocio (el agente NUNCA las cruza, ver systemPrompt.ts)
+  maxDescuentoPct   Int @default(0) // 0 = no autorizado a ofrecer descuentos
+
+  // Escalamiento a humano
+  slackWebhookUrl String?
+  escalationEmail String?
+
+  // Canales (Meta)
+  metaVerifyToken   String?
+  waToken           String?
+  waPhoneId         String?
+  igToken           String?
+  igAccountId       String?
+  messengerToken    String?
+  messengerPageId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Catálogo real de productos/servicios. La tool consultar_catalogo SOLO lee de
+/// aquí — el agente nunca inventa precios ni disponibilidad.
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?
+  description String?
+  price       Float?
+  sku         String?
+  keywords    String   @default("[]") // JSON: sinónimos para que el agente lo reconozca
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active])
+}
+
+model Contact {
+  id      String  @id @default(cuid())
+  name    String?
+  phone   String? @unique
+  email   String?
+  company String?
+  notes   String?
+
+  whatsappId  String? @unique
+  instagramId String? @unique
+  messengerId String? @unique
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+  leads         Lead[]
+}
+
+model Conversation {
+  id         String      @id @default(cuid())
+  channel    ChannelType
+  externalId String // id de la conversación/hilo en el canal de origen
+  contactId  String
+  contact    Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  status             ConversationStatus @default(ACTIVA)
+  lastMessageAt      DateTime           @default(now())
+  lastMessagePreview String?
+
+  messages   Message[]
+  followUps  FollowUp[]
+  toolCalls  ToolCallLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([channel, externalId])
+  @@index([lastMessageAt])
+  @@index([status])
+}
+
+model Message {
+  id             String           @id @default(cuid())
+  conversationId String
+  conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction      MessageDirection
+  sender         MessageSender    @default(CLIENTE)
+  body           String
+  externalId     String?          @unique
+  createdAt      DateTime         @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+/// Un lead por contacto (se actualiza in-place, no se duplica).
+model Lead {
+  id        String    @id @default(cuid())
+  contactId String    @unique
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  stage     LeadStage @default(NUEVO)
+  interes   String? // qué quiere / resumen corto
+  valorEst  Float? // valor estimado de la venta, si se conoce
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stage])
+}
+
+model FollowUp {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  scheduledFor   DateTime
+  reason         String
+  status         FollowUpStatus @default(PENDIENTE)
+  sentAt         DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([status, scheduledFor])
+}
+
+/// Observabilidad: registro de cada llamada a una tool que hace el agente.
+model ToolCallLog {
+  id             String        @id @default(cuid())
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  engine         String // "rules" | "anthropic"
+  toolName       String
+  args           String // JSON
+  result         String // JSON
+  ok             Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+
+  @@index([conversationId, createdAt])
+  @@index([toolName])
+}

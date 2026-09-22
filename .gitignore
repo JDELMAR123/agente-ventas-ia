@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.local
+*.pem
+src/generated/
+.DS_Store
+*.log
+.vercel
