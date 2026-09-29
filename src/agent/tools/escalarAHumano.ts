@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "../../db/prisma.js";
 import { getSettings } from "../../settings/index.js";
 import { notifySlack } from "../../lib/slack.js";
+import { notifyEmail } from "../../lib/email.js";
 import type { ToolDefinition } from "./types.js";
 
 const schema = z.object({
@@ -37,13 +38,18 @@ export const escalarAHumano: ToolDefinition<typeof schema> = {
     ]);
 
     const nombre = conversation.contact.name ?? conversation.contact.phone ?? "cliente";
-    await notifySlack(
-      settings.escalation.slackWebhookUrl,
-      `🚨 *${settings.businessName}* — conversación escalada a un humano\n` +
-        `Cliente: ${nombre} (${ctx.channel})\n` +
-        `Motivo: ${motivo}\n` +
-        `Conversación: ${ctx.conversationId}`
-    );
+    const mensaje =
+      `🚨 ${settings.businessName} — conversación escalada a un humano\n` +
+      `Cliente: ${nombre} (${ctx.channel})\n` +
+      `Motivo: ${motivo}\n` +
+      `Conversación: ${ctx.conversationId}`;
+
+    // Los dos avisos son independientes entre sí — que uno falle (o no esté
+    // configurado) no debe impedir que el otro llegue.
+    await Promise.allSettled([
+      notifySlack(settings.escalation.slackWebhookUrl, mensaje),
+      notifyEmail(settings, `${settings.businessName}: conversación escalada`, mensaje),
+    ]);
 
     return { ok: true, pausado: true };
   },

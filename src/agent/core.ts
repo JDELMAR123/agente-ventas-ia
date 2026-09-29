@@ -78,13 +78,17 @@ export async function processInboundMessage(msg: InboundMessage): Promise<void> 
   // Si ya se escaló a un humano, el agente deja de responder en esta conversación.
   if (conversation.status === "PAUSADA") return;
 
-  const previousMessages = await prisma.message.findMany({
+  // "desc" + take trae los MÁS RECIENTES (30 de historial + el que acabamos
+  // de guardar); con "asc" + take siempre se traen los más antiguos de toda
+  // la conversación, que es lo que NO queremos.
+  const recentMessages = await prisma.message.findMany({
     where: { conversationId: conversation.id },
-    orderBy: { createdAt: "asc" },
-    take: 31, // 30 de historial + el que acabamos de guardar
+    orderBy: { createdAt: "desc" },
+    take: 31,
   });
-  const history = previousMessages
-    .slice(0, -1)
+  const history = recentMessages
+    .slice(1) // saco el mensaje que acabamos de guardar (el más reciente)
+    .reverse() // de vuelta a orden cronológico: viejo → nuevo
     .map((m) => ({ direction: m.direction, body: m.body }));
 
   const engine = pickEngine(settings.ai.provider);
@@ -93,6 +97,7 @@ export async function processInboundMessage(msg: InboundMessage): Promise<void> 
     output = await engine.handle({
       settings,
       contactId: contact.id,
+      externalContactId: msg.externalContactId,
       conversationId: conversation.id,
       channel: msg.channel,
       history,

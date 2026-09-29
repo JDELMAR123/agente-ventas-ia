@@ -67,9 +67,21 @@ model Settings {
   // Escalamiento a humano
   slackWebhookUrl String?
   escalationEmail String?
+  /// Credenciales SMTP para poder enviar de verdad a escalationEmail. Sin
+  /// esto configurado, escalationEmail es solo un dato guardado — no se
+  /// manda ningún correo (Slack sigue siendo el aviso principal).
+  smtpHost     String?
+  smtpPort     Int?
+  smtpUser     String?
+  smtpPassword String?
+  smtpFrom     String?
 
   // Canales (Meta)
   metaVerifyToken   String?
+  /// App Secret de la app de Meta — para validar la firma X-Hub-Signature-256
+  /// de cada webhook entrante. Sin esto, CUALQUIERA que conozca la URL del
+  /// webhook puede mandar mensajes falsos que el agente procesa como reales.
+  metaAppSecret     String?
   waToken           String?
   waPhoneId         String?
   igToken           String?

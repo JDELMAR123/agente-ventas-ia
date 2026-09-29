@@ -14,7 +14,14 @@ type SettingsBody = {
   maxDescuentoPct?: string;
   slackWebhookUrl?: string;
   escalationEmail?: string;
+  smtpHost?: string;
+  smtpPort?: string;
+  smtpUser?: string;
+  smtpPassword?: string;
+  smtpPassword__clear?: string;
+  smtpFrom?: string;
   metaVerifyToken?: string;
+  metaAppSecret?: string;
   waToken?: string;
   waPhoneId?: string;
   waFollowUpTemplateName?: string;
@@ -117,6 +124,26 @@ ${saved ? `<div class="flash">${esc(saved)}</div>` : ""}
 
     <label>Correo de respaldo</label>
     <input type="email" name="escalationEmail" value="${esc(settings.escalation.email ?? "")}">
+    <p class="hint">
+      Para que este correo reciba algo de verdad, hay que configurar un SMTP
+      abajo — sin eso, este campo solo queda guardado sin usarse.
+    </p>
+
+    <label>Servidor SMTP</label>
+    <input type="text" name="smtpHost" value="${esc(row.smtpHost ?? "")}" placeholder="smtp.gmail.com">
+
+    <label>Puerto SMTP</label>
+    <input type="number" name="smtpPort" value="${row.smtpPort ?? ""}" placeholder="587">
+
+    <label>Usuario SMTP</label>
+    <input type="text" name="smtpUser" value="${esc(row.smtpUser ?? "")}">
+
+    <label>Contraseña SMTP ${row.smtpPassword ? "(ya configurada — deja vacío para no cambiarla)" : ""}</label>
+    <input type="password" name="smtpPassword" placeholder="${row.smtpPassword ? "••••••••" : ""}">
+    ${row.smtpPassword ? `<label style="font-weight:400;font-size:12px;"><input type="checkbox" name="smtpPassword__clear" style="width:auto;"> Quitar la contraseña y desactivar el envío por correo</label>` : ""}
+
+    <label>Remitente (From)</label>
+    <input type="text" name="smtpFrom" value="${esc(row.smtpFrom ?? "")}" placeholder="ventas@tunegocio.com">
 
     <button type="submit">Guardar</button>
   </form>
@@ -133,6 +160,13 @@ ${saved ? `<div class="flash">${esc(saved)}</div>` : ""}
 
     <label>Token de verificación del webhook</label>
     <input type="text" name="metaVerifyToken" value="${esc(row.metaVerifyToken ?? "")}" placeholder="invéntate una cadena secreta">
+
+    <label>App Secret de la app de Meta ${row.metaAppSecret ? "(configurado)" : ""}</label>
+    <input type="password" name="metaAppSecret" placeholder="${row.metaAppSecret ? "••••••••" : "se ve en Meta App Dashboard → Settings → Basic"}">
+    <p class="hint">
+      Obligatorio para producción: sin esto, el webhook no puede verificar
+      que los mensajes entrantes de verdad vienen de Meta y rechaza el envío.
+    </p>
 
     <label>Token de acceso de WhatsApp ${row.waToken ? "(configurado)" : ""}</label>
     <input type="password" name="waToken" placeholder="${row.waToken ? "••••••••" : "EAAG..."}">
@@ -232,6 +266,8 @@ export async function registerAdminRoutes(root: FastifyInstance) {
     const b = req.body;
     const apiKey =
       b.aiApiKey__clear === "on" ? null : b.aiApiKey?.trim() ? b.aiApiKey.trim() : undefined;
+    const smtpPassword =
+      b.smtpPassword__clear === "on" ? null : b.smtpPassword?.trim() ? b.smtpPassword.trim() : undefined;
 
     await updateSettings({
       businessName: b.businessName?.trim() || "Mi negocio",
@@ -242,7 +278,13 @@ export async function registerAdminRoutes(root: FastifyInstance) {
       ...(apiKey !== undefined ? { aiApiKey: apiKey } : {}),
       ...(b.slackWebhookUrl !== undefined ? { slackWebhookUrl: b.slackWebhookUrl.trim() || null } : {}),
       ...(b.escalationEmail !== undefined ? { escalationEmail: b.escalationEmail.trim() || null } : {}),
+      ...(b.smtpHost !== undefined ? { smtpHost: b.smtpHost.trim() || null } : {}),
+      ...(b.smtpPort !== undefined ? { smtpPort: b.smtpPort.trim() ? Number(b.smtpPort) : null } : {}),
+      ...(b.smtpUser !== undefined ? { smtpUser: b.smtpUser.trim() || null } : {}),
+      ...(smtpPassword !== undefined ? { smtpPassword } : {}),
+      ...(b.smtpFrom !== undefined ? { smtpFrom: b.smtpFrom.trim() || null } : {}),
       ...(b.metaVerifyToken !== undefined ? { metaVerifyToken: b.metaVerifyToken.trim() || null } : {}),
+      ...(b.metaAppSecret?.trim() ? { metaAppSecret: b.metaAppSecret.trim() } : {}),
       ...(b.waToken?.trim() ? { waToken: b.waToken.trim() } : {}),
       ...(b.waPhoneId !== undefined ? { waPhoneId: b.waPhoneId.trim() || null } : {}),
       ...(b.waFollowUpTemplateName !== undefined

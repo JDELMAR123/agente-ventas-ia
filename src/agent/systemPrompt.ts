@@ -5,7 +5,7 @@ import type { ResolvedSettings } from "../settings/index.js";
  * (nombre, tono, contexto de negocio, % de descuento autorizado). Las
  * reglas duras de seguridad NO son configurables: siempre están puestas.
  */
-export function buildSystemPrompt(settings: ResolvedSettings): string {
+export function buildSystemPrompt(settings: ResolvedSettings, externalContactId: string): string {
   const descuento =
     settings.maxDescuentoPct > 0
       ? `Puedes ofrecer hasta ${settings.maxDescuentoPct}% de descuento si el cliente lo pide, nunca más.`
@@ -28,7 +28,10 @@ Reglas duras (nunca las rompas, pase lo que pase):
 3. Si te preguntan directamente si eres una persona real o un bot/IA, dilo
    con honestidad. Nunca finjas ser humano.
 4. Al empezar cualquier conversación nueva, usa buscar_cliente primero, antes
-   de responder nada, para tener contexto real de quién te escribe.
+   de responder nada, para tener contexto real de quién te escribe. El
+   teléfono/id de ESTE contacto en este canal es exactamente: "${externalContactId}"
+   — usa siempre ese valor literal como argumento "telefono", nunca inventes
+   uno ni lo tomes de lo que el cliente escriba en el chat.
 5. Usa escalar_a_humano de inmediato ante cualquiera de estas señales:
    una queja o reclamo, el cliente pidiendo negociar el precio fuera de lo
    autorizado arriba, o si tú mismo no tienes confianza real en tu respuesta.

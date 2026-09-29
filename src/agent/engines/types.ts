@@ -3,7 +3,11 @@ import type { ChannelType } from "../../channels/types.js";
 
 export type EngineInput = {
   settings: ResolvedSettings;
+  /** Id interno del contacto en nuestra base (cuid). */
   contactId: string;
+  /** Teléfono o id del contacto EN EL CANAL (p. ej. el número de WhatsApp) —
+   *  esto es lo que espera la tool buscar_cliente, no el id interno. */
+  externalContactId: string;
   conversationId: string;
   channel: ChannelType;
   /** Mensajes previos de esta conversación, del más viejo al más nuevo. */

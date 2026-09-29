@@ -31,6 +31,10 @@ se activan repitiendo este mismo proceso cuando se implementen del todo.
 1. En [developers.facebook.com](https://developers.facebook.com/apps) →
    **Crear app** → tipo **Business**.
 2. Añade el producto **WhatsApp**.
+3. Copia el **App Secret**: Settings → Basic → "App Secret" → "Show". Lo vas
+   a necesitar en el paso 4 — es **obligatorio**, sin él el webhook rechaza
+   todos los mensajes entrantes (así el agente valida que de verdad vienen
+   de Meta y no de alguien que solo conoce la URL pública).
 
 ## 3. WhatsApp
 
@@ -50,8 +54,11 @@ Ve al panel **`/admin`** de tu instalación (protegido con `ADMIN_USER` /
 `ADMIN_PASSWORD`) → sección **"WhatsApp (Meta Cloud API)"** y rellena:
 
 - **Token de verificación del webhook**: invéntate cualquier cadena secreta
-  (por ejemplo, generada con `openssl rand -hex 16`). Es solo para que Meta
-  confirme que el webhook es tuyo, no viene de Meta.
+  (por ejemplo, generada con `openssl rand -hex 16`). Es solo para el `GET`
+  de suscripción inicial.
+- **App Secret de la app de Meta**: el del paso 2.3 — **este es el que
+  valida cada mensaje entrante de verdad**; sin él, el webhook responde
+  `500` a todo.
 - **Token de acceso de WhatsApp**: el System User token del paso 3.
 - **Phone Number ID**: el del paso 3.
 
@@ -60,6 +67,7 @@ como respaldo — lo de `/admin` siempre tiene prioridad si está configurado):
 
 ```
 META_WEBHOOK_VERIFY_TOKEN="una-cadena-larga-y-secreta"
+META_APP_SECRET="..."
 META_WHATSAPP_TOKEN="EAAG..."
 META_WHATSAPP_PHONE_ID="123456789012345"
 ```

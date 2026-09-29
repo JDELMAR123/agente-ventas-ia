@@ -43,6 +43,18 @@ export const crearOActualizarLead: ToolDefinition<typeof schema> = {
         valorEst: valorEstimado ?? null,
       },
     });
+
+    // GANADO/PERDIDO cierra la conversación: así el cron de seguimientos
+    // (que cancela todo lo pendiente si la conversación no sigue ACTIVA) no
+    // le vuelve a escribir "¿sigues interesado?" a alguien que ya compró o
+    // que ya quedó descartado.
+    if (etapa === "GANADO" || etapa === "PERDIDO") {
+      await prisma.conversation.update({
+        where: { id: ctx.conversationId },
+        data: { status: "CERRADA" },
+      });
+    }
+
     return { ok: true, leadId: lead.id, etapa: lead.stage };
   },
 };

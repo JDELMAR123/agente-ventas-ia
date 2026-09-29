@@ -28,20 +28,20 @@ type CatalogoResult = { encontrados: number; productos: { nombre: string; precio
 export const ruleEngine: Engine = {
   name: "rules",
 
-  async handle({ contactId, conversationId, channel, history, incomingText }: EngineInput) {
+  async handle({ contactId, externalContactId, conversationId, channel, history, incomingText }: EngineInput) {
     const ctx = { contactId, conversationId, channel };
     const text = norm(incomingText);
     const isFirstTurn = history.length === 0;
 
     if (isFirstTurn) {
       const result = await buscarCliente
-        .execute({ telefono: contactId }, ctx)
+        .execute({ telefono: externalContactId }, ctx)
         .catch((err: unknown) => ({ error: String(err) }));
       await logToolCall({
         conversationId,
         engine: "rules",
         toolName: buscarCliente.name,
-        args: { telefono: contactId },
+        args: { telefono: externalContactId },
         result,
         ok: true,
       });

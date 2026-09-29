@@ -14,7 +14,15 @@ const MAX_TOOL_ROUNDS = 6;
 export const claudeEngine: Engine = {
   name: "anthropic",
 
-  async handle({ settings, contactId, conversationId, channel, history, incomingText }: EngineInput) {
+  async handle({
+    settings,
+    contactId,
+    externalContactId,
+    conversationId,
+    channel,
+    history,
+    incomingText,
+  }: EngineInput) {
     if (!settings.ai.apiKey) {
       throw new Error("claudeEngine llamado sin clave de Anthropic configurada");
     }
@@ -42,7 +50,7 @@ export const claudeEngine: Engine = {
       const response = await client.messages.create({
         model: settings.ai.model,
         max_tokens: 1024,
-        system: buildSystemPrompt(settings),
+        system: buildSystemPrompt(settings, externalContactId),
         tools: anthropicTools,
         messages,
       });

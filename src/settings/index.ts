@@ -26,9 +26,12 @@ export type ResolvedSettings = {
   escalation: {
     slackWebhookUrl: string | null;
     email: string | null;
+    smtp: { host: string; port: number; user: string; password: string; from: string | null } | null;
   };
   channels: {
     verifyToken: string | null;
+    /** App Secret de Meta, para validar la firma de cada webhook entrante. */
+    appSecret: string | null;
     whatsapp: { token: string; phoneId: string } | null;
     instagram: { token: string; accountId: string } | null;
     messenger: { token: string; pageId: string } | null;
@@ -75,6 +78,13 @@ export async function getSettings(): Promise<ResolvedSettings> {
   const provider = configuredProvider === "anthropic" && apiKey ? "anthropic" : "rules";
 
   const verifyToken = row.metaVerifyToken || process.env.META_WEBHOOK_VERIFY_TOKEN || null;
+  const appSecret = row.metaAppSecret || process.env.META_APP_SECRET || null;
+
+  const smtpHost = row.smtpHost || process.env.SMTP_HOST || null;
+  const smtpPort = row.smtpPort || (process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : null);
+  const smtpUser = row.smtpUser || process.env.SMTP_USER || null;
+  const smtpPassword = row.smtpPassword || process.env.SMTP_PASSWORD || null;
+  const smtpFrom = row.smtpFrom || process.env.SMTP_FROM || null;
   const waToken = row.waToken || process.env.META_WHATSAPP_TOKEN || null;
   const waPhoneId = row.waPhoneId || process.env.META_WHATSAPP_PHONE_ID || null;
   const igToken = row.igToken || process.env.META_INSTAGRAM_TOKEN || null;
@@ -96,9 +106,14 @@ export async function getSettings(): Promise<ResolvedSettings> {
     escalation: {
       slackWebhookUrl: row.slackWebhookUrl || process.env.SLACK_WEBHOOK_URL || null,
       email: row.escalationEmail || process.env.ESCALATION_EMAIL || null,
+      smtp:
+        smtpHost && smtpPort && smtpUser && smtpPassword
+          ? { host: smtpHost, port: smtpPort, user: smtpUser, password: smtpPassword, from: smtpFrom }
+          : null,
     },
     channels: {
       verifyToken,
+      appSecret,
       whatsapp: waToken && waPhoneId ? { token: waToken, phoneId: waPhoneId } : null,
       instagram: igToken && igAccountId ? { token: igToken, accountId: igAccountId } : null,
       messenger: msgToken && msgPageId ? { token: msgToken, pageId: msgPageId } : null,

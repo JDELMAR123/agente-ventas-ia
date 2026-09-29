@@ -3,6 +3,7 @@ import { prisma } from "../db/prisma.js";
 import { getAdapter } from "../channels/registry.js";
 import { getSettings } from "../settings/index.js";
 import { notifySlack } from "../lib/slack.js";
+import { notifyEmail } from "../lib/email.js";
 
 const VENTANA_24H_MS = 24 * 60 * 60 * 1000;
 
@@ -81,14 +82,16 @@ export async function runFollowUps(): Promise<void> {
       // esté revisando la consola del servidor. Distinto del aviso de
       // escalar_a_humano — esto es un fallo del sistema, no un cliente que
       // necesita atención.
-      await notifySlack(
-        settings.escalation.slackWebhookUrl,
-        `⚠️ *${settings.businessName}* — fallo de sistema (seguimiento automático)\n` +
-          `Cliente: ${nombre}\n` +
-          `Conversación: ${conversation.id}\n` +
-          `Motivo del seguimiento: ${followUp.reason}\n` +
-          `Error: ${err instanceof Error ? err.message : String(err)}`
-      );
+      const mensaje =
+        `⚠️ ${settings.businessName} — fallo de sistema (seguimiento automático)\n` +
+        `Cliente: ${nombre}\n` +
+        `Conversación: ${conversation.id}\n` +
+        `Motivo del seguimiento: ${followUp.reason}\n` +
+        `Error: ${err instanceof Error ? err.message : String(err)}`;
+      await Promise.allSettled([
+        notifySlack(settings.escalation.slackWebhookUrl, mensaje),
+        notifyEmail(settings, `${settings.businessName}: fallo de sistema`, mensaje),
+      ]);
     }
   }
 }

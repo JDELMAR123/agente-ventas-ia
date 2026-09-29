@@ -65,8 +65,10 @@ export class WhatsAppAdapter implements ChannelAdapter {
     const settings = await getSettings();
     const wa = settings.channels.whatsapp;
     if (!wa) {
-      console.warn("[whatsapp] canal no configurado, no se envía el mensaje");
-      return;
+      // Lanzar, no solo avisar por consola: quien llama (p. ej. followUps.ts)
+      // depende de que esto falle de verdad para no marcar como "enviado"
+      // algo que nunca salió.
+      throw new Error("Canal de WhatsApp no configurado, no se puede enviar el mensaje");
     }
 
     const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${wa.phoneId}/messages`;
