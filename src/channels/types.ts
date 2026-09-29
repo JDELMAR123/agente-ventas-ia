@@ -30,6 +30,23 @@ export interface ChannelAdapter {
    * conoce.
    */
   recibirMensaje(payload: unknown): InboundMessage[];
-  /** Envía un mensaje de texto saliente al contacto de ese hilo. */
+  /**
+   * Envía un mensaje de texto libre. En WhatsApp, esto SOLO funciona dentro
+   * de la ventana de 24h desde el último mensaje del cliente — fuera de eso,
+   * Meta lo rechaza. Quien llame a esto es responsable de esa comprobación
+   * (ver src/jobs/followUps.ts).
+   */
   enviarMensaje(externalConversationId: string, body: string): Promise<void>;
+  /**
+   * Envía una plantilla pre-aprobada por Meta — el único tipo de mensaje
+   * permitido fuera de la ventana de 24h. Opcional porque no todos los
+   * canales tienen este concepto (o esta implementación); si un canal no lo
+   * soporta, quien llame debe tratarlo como "no se puede enviar" en vez de
+   * asumir que existe.
+   */
+  enviarPlantilla?(
+    externalConversationId: string,
+    templateName: string,
+    lang: string
+  ): Promise<void>;
 }

@@ -44,6 +44,7 @@ enum FollowUpStatus {
   PENDIENTE
   ENVIADO
   CANCELADO
+  FALLIDO // se intentó pero no se pudo enviar (ver ToolCallLog / alerta de Slack)
 }
 
 /// Configuración del negocio que compró este agente. Fila única (id = "singleton").
@@ -75,6 +76,13 @@ model Settings {
   igAccountId       String?
   messengerToken    String?
   messengerPageId   String?
+
+  /// Plantilla de WhatsApp aprobada por Meta para el seguimiento automático
+  /// fuera de la ventana de 24h. Sin esto, un seguimiento fuera de ventana
+  /// NO se envía (Meta lo rechazaría) — solo se avisa por Slack.
+  /// Se registra y aprueba en Meta Business Manager, no aquí. Ver docs/META_SETUP.md.
+  waFollowUpTemplateName String?
+  waFollowUpTemplateLang String  @default("es")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

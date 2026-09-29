@@ -33,6 +33,12 @@ export type ResolvedSettings = {
     instagram: { token: string; accountId: string } | null;
     messenger: { token: string; pageId: string } | null;
   };
+  /**
+   * Plantilla de WhatsApp para seguimientos fuera de la ventana de 24h.
+   * null si el negocio todavía no registró/aprobó una en Meta — sin esto,
+   * el cron de seguimiento NO manda nada fuera de ventana (ver followUps.ts).
+   */
+  followUpTemplate: { name: string; lang: string } | null;
 };
 
 type SettingsRow = Awaited<ReturnType<typeof prisma.settings.findUnique>>;
@@ -97,6 +103,9 @@ export async function getSettings(): Promise<ResolvedSettings> {
       instagram: igToken && igAccountId ? { token: igToken, accountId: igAccountId } : null,
       messenger: msgToken && msgPageId ? { token: msgToken, pageId: msgPageId } : null,
     },
+    followUpTemplate: row.waFollowUpTemplateName
+      ? { name: row.waFollowUpTemplateName, lang: row.waFollowUpTemplateLang || "es" }
+      : null,
   };
 }
 

@@ -89,4 +89,38 @@ export class WhatsAppAdapter implements ChannelAdapter {
       throw new Error(`WhatsApp API respondió ${res.status}: ${detail}`);
     }
   }
+
+  /**
+   * Envía una plantilla aprobada por Meta (única forma de escribirle a un
+   * cliente fuera de la ventana de 24h). La plantilla debe existir y estar
+   * aprobada en Meta Business Manager con exactamente ese nombre e idioma —
+   * este método no la crea ni la valida, solo la invoca.
+   */
+  async enviarPlantilla(externalConversationId: string, templateName: string, lang: string): Promise<void> {
+    const settings = await getSettings();
+    const wa = settings.channels.whatsapp;
+    if (!wa) {
+      throw new Error("Canal de WhatsApp no configurado, no se puede enviar la plantilla");
+    }
+
+    const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${wa.phoneId}/messages`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${wa.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: externalConversationId,
+        type: "template",
+        template: { name: templateName, language: { code: lang } },
+      }),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(`WhatsApp API (plantilla) respondió ${res.status}: ${detail}`);
+    }
+  }
 }

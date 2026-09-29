@@ -17,6 +17,8 @@ type SettingsBody = {
   metaVerifyToken?: string;
   waToken?: string;
   waPhoneId?: string;
+  waFollowUpTemplateName?: string;
+  waFollowUpTemplateLang?: string;
 };
 
 type ProductBody = {
@@ -138,6 +140,19 @@ ${saved ? `<div class="flash">${esc(saved)}</div>` : ""}
     <label>Phone Number ID</label>
     <input type="text" name="waPhoneId" value="${esc(row.waPhoneId ?? "")}">
 
+    <label>Plantilla de seguimiento (aprobada por Meta)</label>
+    <input type="text" name="waFollowUpTemplateName" value="${esc(row.waFollowUpTemplateName ?? "")}" placeholder="p. ej. seguimiento_venta">
+    <p class="hint">
+      El seguimiento automático solo puede mandar texto libre dentro de las 24h desde
+      el último mensaje del cliente. Fuera de esa ventana, WhatsApp exige una plantilla
+      pre-aprobada — regístrala y espera su aprobación en Meta Business Manager, y pon
+      aquí su nombre exacto. Sin esto, un seguimiento fuera de ventana no se envía (te
+      avisamos por Slack en vez de fallar en silencio).
+    </p>
+
+    <label>Idioma de la plantilla</label>
+    <input type="text" name="waFollowUpTemplateLang" value="${esc(row.waFollowUpTemplateLang || "es")}" placeholder="es">
+
     <button type="submit">Guardar</button>
   </form>
 </section>
@@ -230,6 +245,12 @@ export async function registerAdminRoutes(root: FastifyInstance) {
       ...(b.metaVerifyToken !== undefined ? { metaVerifyToken: b.metaVerifyToken.trim() || null } : {}),
       ...(b.waToken?.trim() ? { waToken: b.waToken.trim() } : {}),
       ...(b.waPhoneId !== undefined ? { waPhoneId: b.waPhoneId.trim() || null } : {}),
+      ...(b.waFollowUpTemplateName !== undefined
+        ? { waFollowUpTemplateName: b.waFollowUpTemplateName.trim() || null }
+        : {}),
+      ...(b.waFollowUpTemplateLang !== undefined
+        ? { waFollowUpTemplateLang: b.waFollowUpTemplateLang.trim() || "es" }
+        : {}),
     });
     reply.redirect("/admin?saved=Guardado");
   });

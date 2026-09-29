@@ -16,6 +16,7 @@ se activan repitiendo este mismo proceso cuando se implementen del todo.
 | 3. WhatsApp: alta del número + Phone Number ID + token | Tú | 1 h |
 | 4. Configurar el webhook apuntando al agente (HTTPS público) | Tú | 30 min |
 | 5. Revisión de permisos de Meta (App Review), para salir del modo de pruebas | Meta | 1–3 semanas |
+| 6. Plantilla de seguimiento (para el cron automático fuera de 24h) | Tú → Meta | 1–2 días |
 
 ## 1. Meta Business y verificación
 
@@ -95,6 +96,36 @@ Para enviar mensajes a cualquier número (no solo a los que agregaste como
 conversación y una política de privacidad publicada. Mientras tanto, puedes
 probar todo el flujo real agregando hasta 5 números de prueba en el panel de
 WhatsApp → API Setup → "To" (sin necesidad de review).
+
+## 7. Plantilla para el seguimiento automático (obligatorio para que funcione fuera de 24h)
+
+El agente hace seguimiento automático (`src/jobs/followUps.ts`) cuando un
+cliente no responde. WhatsApp **solo permite texto libre dentro de las 24h**
+desde el último mensaje del cliente — pasado ese tiempo (que es, de hecho, el
+caso normal de un seguimiento: si el cliente respondiera rápido, no haría
+falta insistirle), Meta rechaza cualquier mensaje que no sea una **plantilla
+pre-aprobada**. Sin esto configurado, el agente **no manda nada** fuera de
+esa ventana — en vez de fallar en silencio, avisa por el mismo webhook de
+Slack que usas para escalamiento (marcado como "fallo de sistema").
+
+Esto **no lo hace el código**, lo tienes que gestionar tú en Meta:
+
+1. En Meta Business Manager → **WhatsApp Manager → Message Templates** →
+   **Create Template**.
+2. Categoría **Utility** (es un recordatorio de seguimiento a alguien que ya
+   te escribió, no publicidad — así evitas la categoría "Marketing", que es
+   más cara y más escrutada). Ejemplo de cuerpo:
+   > "Hola {{1}}, seguimos disponibles si querés retomar lo que conversamos.
+   > Cualquier cosa, escribinos 🙂"
+3. Envíala a revisión. Meta tarda normalmente **1-2 días** en aprobarla o
+   rechazarla (te llega la notificación por correo/en el panel).
+4. Una vez **aprobada**, copia el **nombre exacto** de la plantilla y el
+   **idioma** con el que la creaste, y ponlos en **`/admin`** → sección
+   WhatsApp → "Plantilla de seguimiento".
+
+Si más adelante cambias el texto de la plantilla, tienes que crear una
+plantilla nueva (no se puede editar una ya aprobada) y actualizar el nombre
+en `/admin`.
 
 ## Comprobación
 
