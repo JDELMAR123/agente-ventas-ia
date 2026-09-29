@@ -25,7 +25,9 @@ Stack: Node.js, TypeScript, Fastify 5, Prisma 7, PostgreSQL.
 - **Herramientas reales, no prompts sueltos**: el agente usa *tool calling*
   de verdad para buscar al cliente, crear/actualizar el lead, consultar el
   catálogo (nunca inventa precios), registrar cada interacción, programar
-  seguimientos y escalar a un humano.
+  seguimientos, escalar a un humano, **registrar una venta cerrada** (con
+  productos, cantidades y método de pago) y **agendar una cita/turno real**
+  (con protección básica contra doble reserva el mismo día).
 - **Dos motores de IA**:
   - **Motor de reglas** (incluido, sin coste, sin cuentas externas) por
     defecto — decide qué herramienta usar según palabras clave.
@@ -109,11 +111,11 @@ configura el negocio desde `/admin` antes de conectar WhatsApp.
 ## Estructura
 
 ```
-prisma/schema.prisma       Modelos: Settings, Product, Contact, Conversation, Message, Lead, FollowUp, ToolCallLog
+prisma/schema.prisma       Modelos: Settings, Product, Contact, Conversation, Message, Lead, FollowUp, Sale, Appointment, ToolCallLog
 prisma/migrations/         Migraciones
 prisma/seed.ts             Datos de ejemplo (solo desarrollo local)
 docs/META_SETUP.md         Guía para conectar WhatsApp de verdad
-src/agent/tools/           Las 6 herramientas del agente (buscar cliente, crear lead, catálogo, etc.)
+src/agent/tools/           Las 8 herramientas del agente (buscar cliente, crear lead, catálogo, registrar venta, agendar cita, etc.)
 src/agent/engines/         Motor de reglas (gratis) y motor de Claude (de pago, opcional)
 src/agent/core.ts          Punto de entrada único, agnóstico de canal
 src/agent/systemPrompt.ts  Prompt del sistema (tono y reglas configurables)

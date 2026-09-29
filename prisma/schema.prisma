@@ -47,6 +47,12 @@ enum FollowUpStatus {
   FALLIDO // se intentó pero no se pudo enviar (ver ToolCallLog / alerta de Slack)
 }
 
+enum AppointmentStatus {
+  CONFIRMADA
+  CANCELADA
+  COMPLETADA
+}
+
 /// Configuración del negocio que compró este agente. Fila única (id = "singleton").
 /// Nada de esto viene hardcodeado en el código — se edita desde /admin.
 model Settings {
@@ -133,6 +139,8 @@ model Contact {
   updatedAt     DateTime       @updatedAt
   conversations Conversation[]
   leads         Lead[]
+  sales         Sale[]
+  appointments  Appointment[]
 }
 
 model Conversation {
@@ -146,9 +154,11 @@ model Conversation {
   lastMessageAt      DateTime           @default(now())
   lastMessagePreview String?
 
-  messages   Message[]
-  followUps  FollowUp[]
-  toolCalls  ToolCallLog[]
+  messages     Message[]
+  followUps    FollowUp[]
+  toolCalls    ToolCallLog[]
+  sales        Sale[]
+  appointments Appointment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -198,6 +208,48 @@ model FollowUp {
   createdAt DateTime @default(now())
 
   @@index([status, scheduledFor])
+}
+
+/// Una venta cerrada por el agente (tool registrar_venta). Distinto de
+/// Lead.stage=GANADO: eso es solo una etapa del embudo, esto es el registro
+/// concreto de qué se vendió, cuánto y cómo se pagó — lo que un negocio
+/// necesita para un reporte de ventas real.
+model Sale {
+  id             String        @id @default(cuid())
+  contactId      String
+  contact        Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  items      String // JSON: [{ nombre, cantidad, precioUnitario }]
+  total      Float
+  metodoPago String?
+
+  createdAt DateTime @default(now())
+
+  @@index([contactId])
+  @@index([createdAt])
+}
+
+/// Una cita/reserva (tool agendar_cita) — distinto de FollowUp, que es un
+/// recordatorio interno para que el AGENTE vuelva a escribir, no una
+/// reserva real con el cliente (mesa, turno de servicio, etc.).
+model Appointment {
+  id             String            @id @default(cuid())
+  contactId      String
+  contact        Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation?     @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  scheduledFor DateTime
+  durationMin  Int      @default(60)
+  servicio     String?
+  status       AppointmentStatus @default(CONFIRMADA)
+
+  createdAt DateTime @default(now())
+
+  @@index([scheduledFor])
+  @@index([contactId])
 }
 
 /// Observabilidad: registro de cada llamada a una tool que hace el agente.
